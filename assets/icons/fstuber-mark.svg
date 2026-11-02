@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">FSTuber mark</title>
+  <rect x="4" y="4" width="56" height="56" rx="13" fill="#0f1011" stroke="#34343a" stroke-width="2"/>
+  <path d="M17 18h22M17 18v28M17 31h17M47 18v28M40 24l7 7 7-7M40 40l7-7 7 7" fill="none" stroke="#f4f5f8" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <circle cx="47" cy="31" r="2.5" fill="#7170ff"/>
+</svg>
