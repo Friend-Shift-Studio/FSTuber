@@ -23,23 +23,34 @@
 
     /* Top title bar */
 
-    #titlebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 55px;
+     #titlebar {
+          height: 40px;
+          width: 100%;
+          background: rgb(17, 17, 33);
+          border-bottom: 1px solid rgb(45, 45, 70);
 
-      background: rgb(17, 17, 33);
-      border-bottom: 1px solid rgb(45, 45, 70);
+          display: flex;
+          align-items: center;
+          gap: 25px;
+          padding: 0 18px;
+        }
 
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+        .app-name {
+          font-weight: 700;
+          font-size: 14px;
+        }
 
-      padding: 0 18px;
-      z-index: 10;
-    }
+        .menu-item {
+          font-size: 14px;
+          color: #ccc;
+          cursor: pointer;
+          padding: 10px 8px;
+        }
+
+        .menu-item:hover {
+          background: rgb(45, 45, 70);
+          border-radius: 4px;
+        }
 
     #brand {
       display: flex;
@@ -181,22 +192,8 @@
   <!-- Title bar -->
 
   <div id="titlebar">
-
-    <div id="brand">
-
-      <div id="appIcon">F</div>
-
-      <div>
-        <div id="appName">FSTuber</div>
-        <div id="appSubtitle">Recording Studio</div>
-      </div>
-
-    </div>
-
-    <div id="localStatus">
-      ● LOCAL
-    </div>
-
+    <span class="app-name">FSTuber</span>
+    <div class="menu-item">File</div>
   </div>
 
   <!-- Main preview -->
