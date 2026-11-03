@@ -1,0 +1,441 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>FSTuber</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: rgb(23, 23, 43);
+      color: white;
+      font-family: system-ui, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Main preview */
+
+    #panel {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      padding-bottom: 100px;
+    }
+
+    #preview {
+      width: 85%;
+      max-width: 1200px;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+
+    /* Bottom bar */
+
+    #controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 75px;
+
+      background: rgb(17, 17, 33);
+      border-top: 1px solid rgb(45, 45, 70);
+
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+
+      padding: 0 30px;
+    }
+
+    button {
+      padding: 11px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+      filter: brightness(1.2);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #screenBtn {
+      background: #5865f2;
+      color: white;
+    }
+
+    #recordBtn {
+      background: #e34b4b;
+      color: white;
+    }
+
+    #pauseBtn {
+      background: #e0a52b;
+      color: black;
+    }
+
+    #stopBtn {
+      background: #55556b;
+      color: white;
+    }
+
+    /* Recording status */
+
+    #status {
+      position: fixed;
+      bottom: 90px;
+      left: 30px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .recording {
+      color: #ff5555 !important;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div id="panel">
+    <video id="preview" autoplay playsinline muted></video>
+  </div>
+
+  <div id="status">Not streaming</div>
+
+  <div id="controls">
+
+    <button id="screenBtn">
+      Start Stream
+    </button>
+
+    <button id="recordBtn" disabled>
+      Record
+    </button>
+
+    <button id="pauseBtn" disabled>
+      Pause
+    </button>
+
+    <button id="stopBtn" disabled>
+      Stop
+    </button>
+
+  </div>
+
+  <script>
+
+    const preview = document.getElementById('preview');
+
+    const screenBtn = document.getElementById('screenBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status');
+
+    let stream = null;
+    let recorder = null;
+    let recordedChunks = [];
+    let recordingUrl = null;
+
+    let isFinishing = false;
+
+    // Choose a supported recording format
+
+    function getRecordingType() {
+
+      const types = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+      ];
+
+      return types.find(type =>
+        MediaRecorder.isTypeSupported(type)
+      ) || '';
+
+    }
+
+    // Update status
+
+    function setStatus(message, recording = false) {
+
+      status.textContent = message;
+
+      status.classList.toggle(
+        'recording',
+        recording
+      );
+
+    }
+
+    // Start screen sharing
+
+    screenBtn.onclick = async () => {
+
+      try {
+
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+
+        // Clear previous recording
+
+        if (recordingUrl) {
+          URL.revokeObjectURL(recordingUrl);
+          recordingUrl = null;
+        }
+
+        preview.pause();
+        preview.removeAttribute('src');
+        preview.srcObject = stream;
+
+        preview.controls = false;
+        preview.muted = true;
+
+        screenBtn.disabled = true;
+        recordBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        setStatus('Stream active');
+
+        // Detect external screen-share stop
+
+        stream.getVideoTracks()[0].onended = () => {
+          finishStream();
+        };
+
+      } catch (err) {
+
+        alert('Screen sharing failed: ' + err.message);
+
+      }
+
+    };
+
+    // Start recording
+
+    recordBtn.onclick = () => {
+
+      if (!stream || recorder) return;
+
+      try {
+
+        recordedChunks = [];
+
+        const mimeType = getRecordingType();
+
+        recorder = new MediaRecorder(
+          stream,
+          mimeType ? { mimeType } : {}
+        );
+
+        recorder.ondataavailable = (event) => {
+
+          if (event.data && event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+
+        };
+
+        recorder.onstart = () => {
+
+          setStatus('● Recording...', true);
+
+          recordBtn.disabled = true;
+          pauseBtn.disabled = false;
+
+        };
+
+        recorder.onpause = () => {
+
+          setStatus('Recording paused');
+
+          pauseBtn.textContent = 'Resume';
+
+        };
+
+        recorder.onresume = () => {
+
+          setStatus('● Recording...', true);
+
+          pauseBtn.textContent = 'Pause';
+
+        };
+
+        recorder.onstop = () => {
+
+          saveRecording();
+
+          recorder = null;
+
+        };
+
+        recorder.onerror = (event) => {
+
+          console.error('Recording error:', event.error);
+
+          setStatus('Recording error');
+
+        };
+
+        recorder.start(1000);
+
+      } catch (err) {
+
+        alert('Could not start recording: ' + err.message);
+
+      }
+
+    };
+
+    // Pause / Resume recording
+
+    pauseBtn.onclick = () => {
+
+      if (!recorder) return;
+
+      if (recorder.state === 'recording') {
+
+        recorder.pause();
+
+      } else if (recorder.state === 'paused') {
+
+        recorder.resume();
+
+      }
+
+    };
+
+    // Stop everything
+
+    stopBtn.onclick = () => {
+
+      finishStream();
+
+    };
+
+    // Finish recording and stream
+
+    function finishStream() {
+
+      if (isFinishing) return;
+
+      isFinishing = true;
+
+      // Stop recorder first so its final data is saved
+
+      if (recorder && recorder.state !== 'inactive') {
+
+        recorder.stop();
+
+      } else {
+
+        recorder = null;
+
+        cleanUpStream();
+
+      }
+
+    }
+
+    // Save recording
+
+    function saveRecording() {
+
+      if (recordedChunks.length === 0) {
+
+        cleanUpStream();
+        return;
+
+      }
+
+      const blob = new Blob(recordedChunks, {
+        type: recordedChunks[0].type || 'video/webm'
+      });
+
+      // Create downloadable file
+
+      recordingUrl = URL.createObjectURL(blob);
+
+      const downloadLink = document.createElement('a');
+
+      downloadLink.href = recordingUrl;
+      downloadLink.download =
+        'FSTuber-Recording-' + Date.now() + '.webm';
+
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+
+      // Turn preview into recorded video
+
+      preview.srcObject = null;
+      preview.src = recordingUrl;
+      preview.controls = true;
+      preview.muted = false;
+
+      preview.load();
+
+      setStatus('Recording saved! Ready for playback.');
+
+      cleanUpStream();
+
+    }
+
+    // Reset stream controls
+
+    function cleanUpStream() {
+
+      if (stream) {
+
+        stream.getTracks().forEach(track => track.stop());
+
+        stream = null;
+
+      }
+
+      screenBtn.disabled = false;
+      recordBtn.disabled = true;
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+
+      pauseBtn.textContent = 'Pause';
+
+      isFinishing = false;
+
+      if (!recordingUrl) {
+        setStatus('Not streaming');
+      }
+
+    }
+
+  </script>
+
+</body>
+</html>
