@@ -21,6 +21,65 @@
       overflow: hidden;
     }
 
+    /* Top title bar */
+
+    #titlebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 55px;
+
+      background: rgb(17, 17, 33);
+      border-bottom: 1px solid rgb(45, 45, 70);
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 18px;
+      z-index: 10;
+    }
+
+    #brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    #appIcon {
+      width: 32px;
+      height: 32px;
+      background: #5865f2;
+      border-radius: 8px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #appName {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    #appSubtitle {
+      font-size: 11px;
+      color: #8888a5;
+    }
+
+    #localStatus {
+      font-size: 11px;
+      color: #65d69a;
+      background: rgba(101, 214, 154, 0.1);
+      padding: 5px 10px;
+      border-radius: 20px;
+    }
+
     /* Main preview */
 
     #panel {
@@ -29,8 +88,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 30px;
-      padding-bottom: 100px;
+      padding: 85px 30px 100px;
     }
 
     #preview {
@@ -120,11 +178,36 @@
 
 <body>
 
+  <!-- Title bar -->
+
+  <div id="titlebar">
+
+    <div id="brand">
+
+      <div id="appIcon">F</div>
+
+      <div>
+        <div id="appName">FSTuber</div>
+        <div id="appSubtitle">Recording Studio</div>
+      </div>
+
+    </div>
+
+    <div id="localStatus">
+      ● LOCAL
+    </div>
+
+  </div>
+
+  <!-- Main preview -->
+
   <div id="panel">
     <video id="preview" autoplay playsinline muted></video>
   </div>
 
   <div id="status">Not streaming</div>
+
+  <!-- Bottom controls -->
 
   <div id="controls">
 
@@ -163,8 +246,6 @@
 
     let isFinishing = false;
 
-    // Choose a supported recording format
-
     function getRecordingType() {
 
       const types = [
@@ -179,8 +260,6 @@
 
     }
 
-    // Update status
-
     function setStatus(message, recording = false) {
 
       status.textContent = message;
@@ -192,8 +271,6 @@
 
     }
 
-    // Start screen sharing
-
     screenBtn.onclick = async () => {
 
       try {
@@ -202,8 +279,6 @@
           video: true,
           audio: true
         });
-
-        // Clear previous recording
 
         if (recordingUrl) {
           URL.revokeObjectURL(recordingUrl);
@@ -224,8 +299,6 @@
 
         setStatus('Stream active');
 
-        // Detect external screen-share stop
-
         stream.getVideoTracks()[0].onended = () => {
           finishStream();
         };
@@ -237,8 +310,6 @@
       }
 
     };
-
-    // Start recording
 
     recordBtn.onclick = () => {
 
@@ -314,8 +385,6 @@
 
     };
 
-    // Pause / Resume recording
-
     pauseBtn.onclick = () => {
 
       if (!recorder) return;
@@ -332,23 +401,17 @@
 
     };
 
-    // Stop everything
-
     stopBtn.onclick = () => {
 
       finishStream();
 
     };
 
-    // Finish recording and stream
-
     function finishStream() {
 
       if (isFinishing) return;
 
       isFinishing = true;
-
-      // Stop recorder first so its final data is saved
 
       if (recorder && recorder.state !== 'inactive') {
 
@@ -364,8 +427,6 @@
 
     }
 
-    // Save recording
-
     function saveRecording() {
 
       if (recordedChunks.length === 0) {
@@ -379,8 +440,6 @@
         type: recordedChunks[0].type || 'video/webm'
       });
 
-      // Create downloadable file
-
       recordingUrl = URL.createObjectURL(blob);
 
       const downloadLink = document.createElement('a');
@@ -392,8 +451,6 @@
       document.body.appendChild(downloadLink);
       downloadLink.click();
       downloadLink.remove();
-
-      // Turn preview into recorded video
 
       preview.srcObject = null;
       preview.src = recordingUrl;
@@ -407,8 +464,6 @@
       cleanUpStream();
 
     }
-
-    // Reset stream controls
 
     function cleanUpStream() {
 
